@@ -1,6 +1,8 @@
-FinSmart
+# FinSmart
 
-FinSmart is a modern, authentication-ready financial dashboard built with Next.js App Router. It features scalable architecture, centralized authentication, and clean separation of public and protected routes.
+## Description
+
+FinSmart is a modern, authentication-ready financial dashboard built with Next.js App Router. It features scalable architecture, centralized authentication, and clean separation of public and protected routes. The application provides comprehensive financial management tools, including account aggregation through Plaid API integration, real-time analytics, goal tracking, and secure user authentication. Built with modern technologies like React, TypeScript, Prisma ORM, and PostgreSQL, FinSmart offers a scalable solution for personal and business financial management needs.
 
 ## Features
 - **Next.js App Router**: Uses route groups and layouts for scalable structure

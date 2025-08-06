@@ -1,0 +1,227 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Account {
+  id               String        @id @default(uuid())
+  userId           String
+  type             String
+  provider         String
+  accountId        String?       @map("account_id")
+  name             String
+  accountNumber    String?
+  routingNumber    String?
+  balance          Float         @default(0)
+  availableBalance Float?
+  currency         String        @default("USD")
+  isActive         Boolean       @default(true)
+  lastSyncAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  plaidItemId      String?
+  subtype          String?
+  mask             String?
+  officialName     String?       @map("official_name")
+  institutionId    String?       @map("institution_id")
+  balances         Json?
+  plaidItem        PlaidItem?    @relation(fields: [plaidItemId], references: [id])
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions     Transaction[]
+
+  @@unique([userId, accountId, provider])
+  @@index([accountId])
+  @@index([isActive])
+  @@index([lastSyncAt])
+  @@index([type])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  resource   String?
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([action, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+model Goal {
+  id            String    @id @default(uuid())
+  userId        String
+  name          String
+  description   String?
+  targetAmount  Float
+  currentAmount Float     @default(0)
+  targetDate    DateTime
+  category      String
+  priority      String    @default("medium")
+  isCompleted   Boolean   @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([category])
+  @@index([isCompleted])
+  @@index([priority])
+  @@index([targetDate])
+  @@index([userId])
+  @@map("goals")
+}
+
+model Insight {
+  id          String    @id @default(uuid())
+  userId      String
+  type        String
+  title       String
+  description String
+  importance  String    @default("medium")
+  actionable  Boolean   @default(false)
+  isRead      Boolean   @default(false)
+  data        Json?
+  validUntil  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("insights")
+}
+
+model PlaidItem {
+  id              String    @id @default(uuid())
+  userId          String
+  itemId          String    @unique
+  accessToken     String
+  institutionId   String
+  institutionName String
+  cursor          String?
+  lastSyncAt      DateTime?
+  status          String    @default("active")
+  error           Json?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  accounts        Account[]
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("plaid_items")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expires   DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Transaction {
+  id                      String    @id @default(uuid())
+  userId                  String
+  accountId               String
+  amount                  Float
+  description             String
+  category                String[]  @default([])
+  subcategory             String?
+  type                    String
+  status                  String    @default("posted")
+  merchantName            String?   @map("merchant_name")
+  date                    DateTime
+  transactionId           String?   @unique(map: "transactions_plaidTransactionId_key") @map("transaction_id")
+  plaidCategoryId         String?
+  plaidAccountId          String?
+  originalDescription     String?
+  isRecurring             Boolean   @default(false)
+  recurringFrequency      String?
+  tags                    String[]  @default([])
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  personalFinanceCategory Json?     @map("personal_finance_category")
+  paymentMeta             Json?     @map("payment_meta")
+  location                Json?
+  counterparties          Json[]    @default([])
+  authorizedDate          String?   @map("authorized_date")
+  authorizedDatetime      DateTime? @map("authorized_datetime")
+  isoCurrencyCode         String?   @default("USD") @map("iso_currency_code")
+  unofficialCurrencyCode  String?   @map("unofficial_currency_code")
+  checkNumber             String?   @map("check_number")
+  logoUrl                 String?   @map("logo_url")
+  website                 String?
+  accountIdRef            String?   @map("account_id")
+  name                    String?
+  account                 Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([accountId, date])
+  @@index([category])
+  @@index([isRecurring])
+  @@index([merchantName])
+  @@index([status])
+  @@index([transactionId])
+  @@index([type])
+  @@index([userId, date])
+  @@map("transactions")
+}
+
+model User {
+  id               String         @id @default(uuid())
+  email            String         @unique
+  emailVerified    DateTime?
+  name             String?
+  password         String
+  avatar           String?
+  isActive         Boolean        @default(true)
+  lastLoginAt      DateTime?
+  failedLoginCount Int            @default(0)
+  lockoutUntil     DateTime?
+  twoFactorEnabled Boolean        @default(false)
+  twoFactorSecret  String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  accounts         Account[]
+  auditLogs        AuditLog[]
+  goals            Goal[]
+  insights         Insight[]
+  plaidItems       PlaidItem[]
+  refreshTokens    RefreshToken[]
+  sessions         Session[]
+  transactions     Transaction[]
+
+  @@index([createdAt])
+  @@index([email])
+  @@index([isActive])
+  @@map("users")
+}
